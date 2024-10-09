@@ -1,46 +1,87 @@
 const pool = require("../../db");
 const queries = require("./queries");
 const readerQueries = require("../reader/queries");
-const getBorrow = (req, res) => {
-  pool.query(queries.getBorrow, (error, results) => {
-    if (error) throw error;
+const detailQueries = require("../borrowdetail/queries");
+const bookQueries = require("../book/queries");
+
+const getBorrow = async (req, res) => {
+  try {
+    const results = await pool.query(queries.getBorrow);
     res.status(200).json(results.rows);
-  });
+  } catch (error) {
+    console.error("Error fetching borrow records:", error);
+    res.status(500).send("Error fetching borrow records");
+  }
+};
+const getBorrowById = async (req, res) => {
+  const borrow_id = parseInt(req.params.id);
+
+  try {
+    const results = await pool.query(queries.getBorrowById, [borrow_id]);
+    if (results.rows.length === 0) {
+      return res.status(404).send(`Borrow ID ${borrow_id} not found`);
+    }
+    res.status(200).json(results.rows);
+  } catch (error) {
+    console.error("Error fetching borrow record by ID:", error);
+    res.status(500).send("Error fetching borrow record by ID");
+  }
 };
 
-const getBorrowById = (req, res) => {
-  const borrow_id = parseInt(req.params.id);
-  pool.query(queries.getBorrowById, [borrow_id], (error, results) => {
-    if (error) throw error;
-    res.status(200).json(results.rows);
-  });
-};
-//add to database
-const addBorrow = (req, res) => {
-    const { reader_id, borrow_date, return_date } = req.body;
-  
-    pool.query(readerQueries.getReaderById, [reader_id], (error, results) => {
-      if (error) {
-        res.status(500).send("Error checking reader ID");
-        return;
+// const parseDate = (dateStr) => {
+//   const [day, month, year] = dateStr.split('-');
+//   const date = new Date(`${year}-${month}-${day}`);
+//   date.setUTCHours(21); // Set time to noon UTC to avoid date shift
+//   return date;
+// };
+
+const addBorrow = async (req, res) => {
+  const { reader_id, borrow_date, return_date, book_id } = req.body;
+
+  try {
+    // First, check if reader exists
+    const readerResults = await pool.query(readerQueries.getReaderById, [
+      reader_id,
+    ]);
+    if (!readerResults.rows.length) {
+      return res.status(409).send("Reader ID doesn't exist");
+    }
+
+    // Ensure book_ids is provided and is an array
+    if (!Array.isArray(book_id) || book_id.length === 0) {
+      return res.status(400).send("No books provided to borrow");
+    }
+
+    // Check if all books exist
+    for (const id of book_id) {
+      const bookResults = await pool.query(bookQueries.getBookById, [id]);
+      if (!bookResults.rows.length) {
+        return res.status(409).send(`Book ID ${id} doesn't exist`);
       }
-      if (!results.rows.length) {
-        res.status(409).send("Reader id doesn't exist");
-        return;
-      }
-      pool.query(
-        queries.addBorrow,
-        [reader_id, borrow_date, return_date],
-        (error, results) => {
-          if (error) throw error;
-          res.status(201).send("Borrow added");
-          console.log("Borrow created");
-        }
-      );
+    }
+
+    // Insert into Borrow table
+    const borrowResults = await pool.query(queries.addBorrow1, [
+      reader_id,
+      borrow_date,
+      return_date,
+    ]);
+    const borrow_id = borrowResults.rows[0].borrow_id; // Get the newly created borrow_id
+
+    // Insert each book into BorrowDetails in parallel
+    const insertPromises = book_id.map((id) => {
+      return pool.query(detailQueries.addBorrowdetail, [borrow_id, id]);
     });
-  };
-  
-  
+    await Promise.all(insertPromises);
+
+    // Respond success
+    res.status(201).send("Borrow and books added successfully");
+    console.log("Borrow details added for multiple books");
+  } catch (error) {
+    console.error("Error during borrow process:", error);
+    res.status(500).send("Error processing borrow request");
+  }
+};
 
 const removeBorrow = (req, res) => {
   const borrow_id = parseInt(req.params.id);
@@ -56,37 +97,59 @@ const removeBorrow = (req, res) => {
     }
   });
 };
-const updateBorrow = (req, res) => {
-    const borrow_id = parseInt(req.params.id);
-    const { reader_id, borrow_date, return_date } = req.body;
-  
-    pool.query(queries.getBorrowById, [borrow_id], (error, results) => {
-      const noBorrowFound = !results.rows.length;
-      if (noBorrowFound) {
-        res.status(404).send("No Borrow found !! Couldn't update");
-      } else {
-        pool.query(readerQueries.getReaderById, [reader_id], (error, results) => {
-          if (error) {
-            res.status(500).send("Error checking reader ID");
-            return;
-          }
-          if (!results.rows.length) {
-            res.status(409).send("Reader id doesn't exist");
-            return;
-          }
-          pool.query(
-            queries.updateBorrow,
-            [reader_id, borrow_date, return_date, borrow_id],
-            (error, results) => {
-              if (error) throw error;
-              res.status(200).send("Borrow updated");
-            }
-          );
-        });
+
+const updateBorrow = async (req, res) => {
+  const borrow_id = parseInt(req.params.id);
+  const { reader_id, borrow_date, return_date, book_id } = req.body;
+
+  try {
+    const readerResults = await pool.query(readerQueries.getReaderById, [
+      reader_id,
+    ]);
+    if (!readerResults.rows.length) {
+      return res.status(409).send("Reader ID doesn't exist");
+    }
+    if (!Array.isArray(book_id) || book_id.length === 0) {
+      return res.status(400).send("No books provided to borrow");
+    }
+    for (const id of book_id) {
+      const bookResults = await pool.query(bookQueries.getBookById, [id]);
+      if (!bookResults.rows.length) {
+        return res.status(409).send(`Book ID ${id} doesn't exist`);
       }
+    }
+    const borrowResults = await pool.query(queries.updateBorrow, [
+      reader_id,
+      borrow_date,
+      return_date,
+      borrow_id,
+    ]);
+
+    const borrow_details_idResults = await pool.query(
+      detailQueries.getBorrowdetailIdByBorrowID,
+      [borrow_id]
+    );
+
+    const borrow_details_id = borrow_details_idResults.rows.map(
+      (row) => row.borrow_details_id
+    );
+
+    const updatePromises = book_id.map((id, index) => {
+      return pool.query(detailQueries.updateBorrowdetail, [
+        id,
+        borrow_id,
+        borrow_details_id[index],
+      ]);
     });
-  };
-  
+    await Promise.all(updatePromises);
+    res.status(200).send("Borrow details updated successfully");
+  } catch (error) {
+    console.error("Error during borrow process:", error);
+    res.status(500).send("Error processing borrow request");
+  }
+};
+
+
 
 module.exports = {
   getBorrow,

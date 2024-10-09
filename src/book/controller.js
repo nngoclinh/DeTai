@@ -38,7 +38,7 @@ const removeBook = (req, res) => {
         res.status(200).send("Book removed");
       });
     }
-  }); 
+  });
 };
 const updateBook = (req, res) => {
   const book_id = parseInt(req.params.id);
@@ -49,10 +49,14 @@ const updateBook = (req, res) => {
     if (noBookFound) {
       res.status(404).send("No book found !! Couldn't update");
     } else {
-      pool.query(queries.updateBook, [book_name, author, book_id], (error, results) => {
-        if (error) throw error;
-        res.status(200).send("Book updated");
-      });
+      pool.query(
+        queries.updateBook,
+        [book_name, author, book_id],
+        (error, results) => {
+          if (error) throw error;
+          res.status(200).send("Book updated");
+        }
+      );
     }
   });
 };

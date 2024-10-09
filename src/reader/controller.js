@@ -17,35 +17,35 @@ const getReaderById = (req, res) => {
 };
 //add to database
 const addReader = (req, res) => {
-    const { reader_name, phone_number } = req.body;
-    pool.query(
-      queries.checkIfPhoneNumberExisted,
-      [phone_number],
-      (error, results) => {
-        if (error) {
-          res.status(500).send("Error checking phone number");
-          return;
-        }
-        if (results.rows.length) {
-          res.status(409).send("Phone number already existed");
-          return;
-        }
-        // Add reader
-        pool.query(
-          queries.addReader,
-          [reader_name, phone_number],
-          (error, results) => {
-            if (error) {
-              res.status(500).send("Error adding reader");
-              return;
-            }
-            res.status(201).send("Reader added");
-            console.log("Reader created");
-          }
-        );
+  const { reader_name, phone_number } = req.body;
+  pool.query(
+    queries.checkIfPhoneNumberExisted,
+    [phone_number],
+    (error, results) => {
+      if (error) {
+        res.status(500).send("Error checking phone number");
+        return;
       }
-    );
-  };  
+      if (results.rows.length) {
+        res.status(409).send("Phone number already existed");
+        return;
+      }
+      // Add reader
+      pool.query(
+        queries.addReader,
+        [reader_name, phone_number],
+        (error, results) => {
+          if (error) {
+            res.status(500).send("Error adding reader");
+            return;
+          }
+          res.status(201).send("Reader added");
+          console.log("Reader created");
+        }
+      );
+    }
+  );
+};
 const removeReader = (req, res) => {
   const reader_id = parseInt(req.params.id);
   pool.query(queries.getReaderById, [reader_id], (error, results) => {
