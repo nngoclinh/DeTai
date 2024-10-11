@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reader Manager</title>
+    <link rel="stylesheet" href="reader.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Reader Manager</h1>
+        
+        <!-- Add Reader Form -->
+        <div id="add-reader-form">
+            <h2>Add reader information</h2>
+            <input type="text" id="reader-name" placeholder="Reader Name" required>
+            <input type="text" id="phone-number" placeholder="Phone Number" required>
+            <button onclick="addReader()">Add Reader</button>
+        </div>
+        
+        <!-- Update Reader Form (initially hidden) -->
+        <div id="update-reader-form" style="display: none;">
+            <h2>Update Reader</h2>
+            <input type="text" id="update-reader-name" placeholder="Reader Name" required>
+            <input type="text" id="update-phone-number" placeholder="Phone Number" required>
+            <button id="update-reader-button">Update Reader</button>
+            <button type="button" onclick="hideUpdateForm()">Cancel</button>
+        </div>
+
+        <!-- Reader List Table -->
+        <div id="reader-list">
+            <h2>Reader List</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Reader Name</th>
+                        <th>Phone Number</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="readers"></tbody> 
+            </table>
+        </div>
+    </div>
+
+    <script src="reader.js"></script>
+</body>
+</html>

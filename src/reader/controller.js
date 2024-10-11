@@ -1,86 +1,75 @@
 const pool = require("../../db");
 const queries = require("./queries");
 
-const getReader = (req, res) => {
-  pool.query(queries.getReader, (error, results) => {
-    if (error) throw error;
+const getReader = async (req, res) => {
+  try {
+    const results = await pool.query(queries.getReader);
     res.status(200).json(results.rows);
-  });
+  } catch (error) {
+    console.error("Error fetching readers:", error);
+    res.status(500).send("Error fetching readers");
+  }
 };
 
-const getReaderById = (req, res) => {
+const getReaderById = async (req, res) => {
   const reader_id = parseInt(req.params.id);
-  pool.query(queries.getReaderById, [reader_id], (error, results) => {
-    if (error) throw error;
+  try {
+    const results = await pool.query(queries.getReaderById, [reader_id]);
     res.status(200).json(results.rows);
-  });
+  } catch (error) {
+    console.error("Error fetching reader by ID:", error);
+    res.status(500).send("Error fetching reader by ID");
+  }
 };
-//add to database
-const addReader = (req, res) => {
+
+const addReader = async (req, res) => {
   const { reader_name, phone_number } = req.body;
-  pool.query(
-    queries.checkIfPhoneNumberExisted,
-    [phone_number],
-    (error, results) => {
-      if (error) {
-        res.status(500).send("Error checking phone number");
-        return;
-      }
-      if (results.rows.length) {
-        res.status(409).send("Phone number already existed");
-        return;
-      }
-      // Add reader
-      pool.query(
-        queries.addReader,
-        [reader_name, phone_number],
-        (error, results) => {
-          if (error) {
-            res.status(500).send("Error adding reader");
-            return;
-          }
-          res.status(201).send("Reader added");
-          console.log("Reader created");
-        }
-      );
+  try {
+    // Check if phone number exists
+    const checkResult = await pool.query(queries.checkIfPhoneNumberExisted, [phone_number]);
+    if (checkResult.rows.length) {
+      return res.status(409).send("Phone number already existed");
     }
-  );
+    // Add reader
+    await pool.query(queries.addReader, [reader_name, phone_number]);
+    res.status(201).send("Reader added");
+    console.log("Reader created");
+  } catch (error) {
+    console.error("Error adding reader:", error);
+    res.status(500).send("Error adding reader");
+  }
 };
-const removeReader = (req, res) => {
+
+const removeReader = async (req, res) => {
   const reader_id = parseInt(req.params.id);
-  pool.query(queries.getReaderById, [reader_id], (error, results) => {
-    const noBookFound = !results.rows.length;
-    if (noBookFound) {
-      res.send("No reader found Couldn't remove");
-    } else {
-      pool.query(queries.removeReader, [reader_id], (error, results) => {
-        if (error) throw error;
-        res.status(200).send("Reader removed");
-      });
+  try {
+    const results = await pool.query(queries.getReaderById, [reader_id]);
+    if (!results.rows.length) {
+      return res.status(404).send("No reader found. Couldn't remove.");
     }
-  });
+    await pool.query(queries.removeReader, [reader_id]);
+    res.status(200).send("Reader removed");
+  } catch (error) {
+    console.error("Error removing reader:", error);
+    res.status(500).send("Error removing reader");
+  }
 };
-const updateReader = (req, res) => {
+
+const updateReader = async (req, res) => {
   const reader_id = parseInt(req.params.id);
   const { reader_name, phone_number } = req.body;
-
-  pool.query(queries.getReaderById, [reader_id], (error, results) => {
-    const noReaderFound = !results.rows.length;
-    if (noReaderFound) {
-      res.send("No reader found !! Couldn't update");
-    } else {
-      pool.query(
-        queries.updateReader,
-        [reader_name, phone_number, reader_id],
-        (error, results) => {
-          if (error) throw error;
-          res.status(200).send("Reader updated");
-        }
-      );
+  try {
+    const results = await pool.query(queries.getReaderById, [reader_id]);
+    if (!results.rows.length) {
+      return res.status(404).send("No reader found. Couldn't update.");
     }
-  });
+    await pool.query(queries.updateReader, [reader_name, phone_number, reader_id]);
+    res.status(200).send("Reader updated");
+  } catch (error) {
+    console.error("Error updating reader:", error);
+    res.status(500).send("Error updating reader");
+  }
 };
-
 module.exports = {
   getReader,
   getReaderById,

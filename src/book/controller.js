@@ -1,64 +1,67 @@
 const pool = require("../../db");
 const queries = require("./queries");
 
-const getBook = (req, res) => {
-  pool.query(queries.getBook, (error, results) => {
-    if (error) throw error;
-    res.status(200).json(results.rows);
-  });
+const getBook = async (req, res) => {
+  try {
+    const getBookResult = await pool.query(queries.getBook);
+    res.status(200).json(getBookResult.rows);
+  } catch (error) {
+    console.error("Error fetching book records:", error);
+    res.status(500).send("Error fetching book records");
+  }
 };
-
-const getBookById = (req, res) => {
+const getBookById = async (req, res) => {
   const book_id = parseInt(req.params.id);
-  pool.query(queries.getBookById, [book_id], (error, results) => {
-    if (error) throw error;
-    res.status(200).json(results.rows);
-  });
+  try {
+    const result = await pool.query(queries.getBookById, [book_id]);
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error("Error fetching book by ID:", error);
+    res.status(500).send("Error fetching book by ID");
+  }
 };
 //add to database
-const addBook = (req, res) => {
+const addBook = async (req, res) => {
   const { book_name, author } = req.body;
-  //add students
-  pool.query(queries.addBook, [book_name, author], (error, results) => {
-    if (error) throw error;
+  try {
+    await pool.query(queries.addBook, [book_name, author]);
     res.status(201).send("Book added");
     console.log("Book created");
-  });
+  } catch (error) {
+    console.error("Error adding book:", error);
+    res.status(500).send("Error adding book");
+  }
 };
 
-const removeBook = (req, res) => {
+const removeBook = async (req, res) => {
   const book_id = parseInt(req.params.id);
-  pool.query(queries.getBookById, [book_id], (error, results) => {
-    const noBookFound = !results.rows.length;
-    if (noBookFound) {
-      res.status(404).send("No book found Couldn't remove");
-    } else {
-      pool.query(queries.removeBook, [book_id], (error, results) => {
-        if (error) throw error;
-        res.status(200).send("Book removed");
-      });
+  try {
+    const result = await pool.query(queries.getBookById, [book_id]);
+    if (!result.rows.length) {
+      return res.status(404).send("No book found. Couldn't remove.");
     }
-  });
+    await pool.query(queries.removeBook, [book_id]);
+    res.status(200).send("Book removed");
+  } catch (error) {
+    console.error("Error removing book:", error);
+    res.status(500).send("Error removing book");
+  }
 };
-const updateBook = (req, res) => {
+
+const updateBook = async (req, res) => {
   const book_id = parseInt(req.params.id);
   const { book_name, author } = req.body;
-
-  pool.query(queries.getBookById, [book_id], (error, results) => {
-    const noBookFound = !results.rows.length;
-    if (noBookFound) {
-      res.status(404).send("No book found !! Couldn't update");
-    } else {
-      pool.query(
-        queries.updateBook,
-        [book_name, author, book_id],
-        (error, results) => {
-          if (error) throw error;
-          res.status(200).send("Book updated");
-        }
-      );
+  try {
+    const result = await pool.query(queries.getBookById, [book_id]);
+    if (!result.rows.length) {
+      return res.status(404).send("No book found. Couldn't update.");
     }
-  });
+    await pool.query(queries.updateBook, [book_name, author, book_id]);
+    res.status(200).send("Book updated");
+  } catch (error) {
+    console.error("Error updating book:", error);
+    res.status(500).send("Error updating book");
+  }
 };
 
 module.exports = {

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Manager</title>
+    <link rel="stylesheet" href="book.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Book Manager</h1>
+        
+        <!-- Add Book Form -->
+        <div id="add-book-form">
+            <h2>Add a Book</h2>
+            <input type="text" id="book-name" placeholder="Book Name" required>
+            <input type="text" id="author" placeholder="Author" required>
+            <button onclick="addBook()">Add Book</button>
+        </div>
+        
+        <!-- Update Book Form (initially hidden) -->
+        <div id="update-book-form" style="display: none;">
+            <h2>Update Book</h2>
+            <input type="text" id="update-book-name" placeholder="Book Name" required>
+            <input type="text" id="update-author" placeholder="Author" required>
+            <button id="update-book-button">Update Book</button>
+            <button type="button" onclick="hideUpdateForm()">Cancel</button>
+        </div>
+
+        <!-- Book List Table -->
+        <div id="book-list">
+            <h2>Book List</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Book Name</th>
+                        <th>Author</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="books"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="book.js"></script>
+</body>
+</html>

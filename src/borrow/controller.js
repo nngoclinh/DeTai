@@ -17,7 +17,7 @@ const getBorrowById = async (req, res) => {
   const borrow_id = parseInt(req.params.id);
 
   try {
-    const results = await pool.query(queries.getBorrowById, [borrow_id]);
+    const results = await pool.query(queries.getBorrowById, [borrow_id]); // No typo here
     if (results.rows.length === 0) {
       return res.status(404).send(`Borrow ID ${borrow_id} not found`);
     }
@@ -28,13 +28,22 @@ const getBorrowById = async (req, res) => {
   }
 };
 
+
 // const parseDate = (dateStr) => {
 //   const [day, month, year] = dateStr.split('-');
 //   const date = new Date(`${year}-${month}-${day}`);
 //   date.setUTCHours(21); // Set time to noon UTC to avoid date shift
 //   return date;
 // };
-
+const getBorrowview = async (req,res) =>{
+  try {
+    const results = await pool.query(queries.getBorrowview);
+    res.status(200).json(results.rows);
+  } catch (error) {
+    console.error("Error fetching borrow records:", error);
+    res.status(500).send("Error fetching borrow records");
+  }
+}
 const addBorrow = async (req, res) => {
   const { reader_id, borrow_date, return_date, book_id } = req.body;
 
@@ -83,19 +92,35 @@ const addBorrow = async (req, res) => {
   }
 };
 
-const removeBorrow = (req, res) => {
+const removeBorrow = async (req, res) => {
   const borrow_id = parseInt(req.params.id);
-  pool.query(queries.getBorrowById, [borrow_id], (error, results) => {
-    const noBorrowFound = !results.rows.length;
-    if (noBorrowFound) {
-      res.status(404).send("No Borrow found Couldn't remove");
-    } else {
-      pool.query(queries.removeBorrow, [borrow_id], (error, results) => {
-        if (error) throw error;
-        res.status(200).send("Borrow removed");
-      });
+  try {
+    const getBorrowbyIdResulst = await pool.query(queries.getBorrowById, [
+      borrow_id,
+    ]);
+    if (!getBorrowbyIdResulst.rows.length) {
+      return res.status(409).send("Borrow not founded! Couldn't delete");
     }
-  });
+    const borrow_details_idResults = await pool.query(
+      detailQueries.getBorrowdetailIdByBorrowID,
+      [borrow_id]
+    );
+    const borrow_details_id = borrow_details_idResults.rows.map(
+      (row) => row.borrow_details_id
+    );
+    const removeBorrowPromises = borrow_details_id.map(borrow_detail_id => 
+      pool.query(detailQueries.removeBorrowdetail, [borrow_detail_id])
+    );
+    await Promise.all(removeBorrowPromises);
+    const removeBorrowResults = await pool.query(
+      queries.removeBorrow,
+      [borrow_id]
+    );
+    res.status(200).send("Borrow detail successfully remove");
+  } catch (error) {
+    console.error("Error during borrow process:", error);
+    res.status(500).send("Error processing borrow request");
+  }
 };
 
 const updateBorrow = async (req, res) => {
@@ -149,12 +174,11 @@ const updateBorrow = async (req, res) => {
   }
 };
 
-
-
 module.exports = {
   getBorrow,
   getBorrowById,
   addBorrow,
   removeBorrow,
   updateBorrow,
+  getBorrowview,
 };
