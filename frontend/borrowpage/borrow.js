@@ -15,7 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${day}-${month}-${year}`;
     }
 
-    // Fetch available readers and books when the page loads
     async function fetchReaders() {
         try {
             const response = await fetch('http://localhost:3000/api/v1/reader'); // Adjust API endpoint if necessary
@@ -45,33 +44,71 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('http://localhost:3000/api/v1/misc'); // Adjust API endpoint for borrow records
             const borrowRecords = await response.json();
-
+        
             // Clear existing rows
             borrowTableBody.innerHTML = '';
-
+        
             borrowRecords.forEach(record => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${record.borrow_id}</td>
-                    <td>${formatDate(record.borrow_date)}</td>
-                    <td>${formatDate(record.return_date)}</td>
-                    <td>${record.books_borrowed.join(', ')}</td>
-                    <td>${record.reader_name}</td>
-                    <td>
-                        <button class="action-btn btn-update" data-id="${record.borrow_id}">Update</button>
-                        <button class="action-btn btn-delete" data-id="${record.borrow_id}">Delete</button>
-                    </td>
+                <td>${record.borrow_id}</td>
+                <td>${formatDate(record.borrow_date)}</td>
+                <td>${formatDate(record.return_date)}</td>
+                <td>${record.books_borrowed.join(', ')}</td>
+                <td>${record.reader_name}</td>
+                <td>
+                    <button class="action-btn btn-update" data-id="${record.borrow_id}">Update</button>
+                    <button class="action-btn btn-delete" data-id="${record.borrow_id}">Delete</button>
+                </td>
                 `;
                 borrowTableBody.appendChild(row);
             });
+        
+            const updateButtons = document.querySelectorAll('.btn-update');
+            updateButtons.forEach(button => {
+                button.addEventListener('click', async (event) => {
+                    const borrowId = event.target.getAttribute('data-id');
+                    const borrowRecord = borrowRecords.find(record => record.borrow_id === parseInt(borrowId));
 
-            // Add event listeners for delete buttons
+                    // Clear and populate the update form fields
+                    document.getElementById('update_borrow_id').value = borrowId;
+                    document.getElementById('update_borrow_date').value = formatDate(borrowRecord.borrow_date);
+                    document.getElementById('update_return_date').value = formatDate(borrowRecord.return_date);
+
+                    // Populate and wait for the reader select box to be fully populated
+                    await populateUpdateReaderSelect(borrowRecord.reader_id);
+
+                    // Show the update form
+                    document.getElementById('updateForm').style.display = 'block';
+                });
+            });
             const deleteButtons = document.querySelectorAll('.btn-delete');
             deleteButtons.forEach(button => {
-                button.addEventListener('click', handleDelete);
+              button.addEventListener('click', handleDelete);
             });
         } catch (error) {
             console.error('Error fetching borrow records:', error);
+        }
+    }
+    async function handleDelete(event) {
+        const borrowId = event.target.getAttribute('data-id');
+    
+        if (confirm('Are you sure you want to delete this borrow record?')) {
+            try {
+                const response = await fetch(`http://localhost:3000/api/v1/borrow/${borrowId}`, {
+                    method: 'DELETE',
+                });
+    
+                if (!response.ok) {
+                    throw new Error('Failed to delete borrow record');
+                }
+    
+                alert('Borrow record deleted successfully!');
+                fetchBorrowRecords(); // Refresh the table after deletion
+            } catch (error) {
+                console.error('Error deleting borrow record:', error);
+                alert('Error deleting borrow record.');
+            }
         }
     }
 
@@ -86,13 +123,11 @@ document.addEventListener('DOMContentLoaded', () => {
             bookListContainer.appendChild(bookCheckbox);
         });
     }
-
-    // Submit form
     function parseDate(dateString) {
         const [day, month, year] = dateString.split('-');
         return new Date(`${year}-${month}-${day}T00:00:00`); // Create Date object
     }
-
+    //add record
     borrowForm.addEventListener('submit', async (event) => {
         event.preventDefault();
 
@@ -139,30 +174,67 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Handle delete button click
-    async function handleDelete(event) {
-        const borrowId = event.target.getAttribute('data-id');
-
-        if (confirm('Are you sure you want to delete this borrow record?')) {
-            try {
-                const response = await fetch(`http://localhost:3000/api/v1/borrow/${borrowId}`, {
-                    method: 'DELETE',
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to delete borrow record');
-                }
-
-                alert('Borrow record deleted successfully!');
-                fetchBorrowRecords(); // Refresh the table after deletion
-            } catch (error) {
-                console.error('Error deleting borrow record:', error);
-                alert('Error deleting borrow record.');
+    async function handleUpdate(event) {
+        event.preventDefault();
+      
+        const borrowId = document.getElementById('update_borrow_id').value;
+        const borrowDateValue = document.getElementById('update_borrow_date').value;
+        const returnDateValue = document.getElementById('update_return_date').value;
+        const readerId = document.getElementById('update_reader_id').value;
+      
+        const borrowDate = parseDate(borrowDateValue);
+        const returnDate = parseDate(returnDateValue);
+      
+        try {
+            const response = await fetch(`http://localhost:3000/api/v1/borrow/${borrowId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    reader_id: readerId,
+                    borrow_date: borrowDateValue,
+                    return_date: returnDateValue,
+                }),
+            });
+      
+            if (!response.ok) {
+                throw new Error('Failed to update borrow record');
             }
+      
+            alert('Borrow record updated successfully!');
+            fetchBorrowRecords(); // Refresh the table after updating a record
+        } catch (error) {
+            console.error(error);
+            alert('Error updating borrow record.');
         }
     }
-    // Initial fetch on page load
+
+    document.getElementById('updateForm').addEventListener('submit', handleUpdate);
+
+    async function populateUpdateReaderSelect(readerId) {
+        const updateReaderSelect = document.getElementById('update_reader_id');
+        updateReaderSelect.innerHTML = ''; // Clear existing options
+        try {
+            const response = await fetch('http://localhost:3000/api/v1/reader');
+            const readers = await response.json();
+            readers.forEach(reader => {
+                const option = document.createElement('option');
+                option.value = reader.reader_id;
+                option.textContent = reader.reader_name;
+                console.log(`Comparing reader ID ${reader.reader_id} with ${readerId}`);
+                if (reader.reader_id === readerId) {
+                    option.selected = true;
+                }
+                updateReaderSelect.appendChild(option);
+            });
+        
+        } catch (error) {
+            console.error('Error fetching readers:', error);
+        }
+    }
+
     fetchReaders();
     fetchBooks();
-    fetchBorrowRecords(); // Fetch borrow records to populate the table on page load
+    fetchBorrowRecords();
 });
