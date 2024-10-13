@@ -8,24 +8,19 @@
 </head>
 <body>
     <h1>Borrow Records</h1>
-
     <!-- Borrow form -->
     <div class="form-container">
         <h2>Add/Edit Borrow</h2>
         <form id="borrowForm">
             <input type="hidden" id="borrow_id" />
-            
             <label for="borrow_date">Borrow Date (dd-mm-yyyy):</label>
             <input type="text" id="borrow_date" placeholder="dd-mm-yyyy" required />
-
             <label for="return_date">Return Date (dd-mm-yyyy):</label>
             <input type="text" id="return_date" placeholder="dd-mm-yyyy" required />
-
             <label for="reader_id">Reader Name:</label>
             <select id="reader_id" required>
                 <option value="">Select Reader</option>
             </select>
-
             <label for="book_list">Books:</label>
             <div id="book_list_container">
                 <!-- Checkboxes for available books will be dynamically inserted here -->
@@ -33,7 +28,6 @@
             <button type="submit">Submit</button>
         </form>
     </div>
-
     <!-- Table for borrow records -->
     <table id="borrowTable">
         <thead>
@@ -50,17 +44,17 @@
             <!-- Existing borrow records will be injected here -->
         </tbody>
     </table>
-    <form id="updateForm" style="display:none;">
+    <!-- Update form -->
+    <form id="updateForm" style="display: none;">
+        <input type="hidden" id="update_borrow_id">
         <label for="update_borrow_date">Borrow Date:</label>
         <input type="text" id="update_borrow_date">
         <label for="update_return_date">Return Date:</label>
         <input type="text" id="update_return_date">
         <label for="update_reader_id">Reader:</label>
         <select id="update_reader_id"></select>
-        <div id="update_book_list_container"></div>
-        <button type="submit">Update Borrow</button>
+        <button type="submit">Update Borrow Record</button>
     </form>
-
     <script src="borrow.js"></script>
 </body>
 </html>

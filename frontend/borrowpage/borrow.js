@@ -101,18 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const readerId = document.getElementById('reader_id').value;
 
         // Parse the input date strings to Date objects
-        let borrowDate, returnDate;
-        try {
-            borrowDate = parseDate(borrowDateValue);
-            returnDate = parseDate(returnDateValue);
 
-            if (isNaN(borrowDate.getTime()) || isNaN(returnDate.getTime())) {
-                throw new Error('Invalid date value');
-            }
-        } catch (error) {
-            alert('Please provide valid dates in dd-mm-yyyy format');
-            return;
-        }
 
         // Collect all selected book IDs from checkboxes
         const selectedBooks = Array.from(document.querySelectorAll('.book-checkbox input:checked'))
@@ -132,8 +121,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 body: JSON.stringify({
                     reader_id: readerId,
-                    borrow_date: borrowDate.toISOString(),
-                    return_date: returnDate.toISOString(),
+                    borrow_date: borrowDateValue,
+                    return_date: returnDateValue,
                     book_id: selectedBooks,
                 }),
             });
