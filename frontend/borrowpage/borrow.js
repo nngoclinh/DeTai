@@ -3,7 +3,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const bookListContainer = document.getElementById('book_list_container');
     const readerSelect = document.getElementById('reader_id');
     const borrowTableBody = document.querySelector('#borrowTable tbody');
-
     function formatDate(dateString) {
         const date = new Date(dateString);
         if (isNaN(date.getTime())) {
@@ -44,52 +43,53 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('http://localhost:3000/api/v1/misc'); // Adjust API endpoint for borrow records
             const borrowRecords = await response.json();
-        
+    
             // Clear existing rows
             borrowTableBody.innerHTML = '';
-        
+    
             borrowRecords.forEach(record => {
                 const row = document.createElement('tr');
+                const booksBorrowed = record.books_borrowed.map(book => book.book_name).join(', ');
+                const booksIdBorrowed = record.books_borrowed.map(book => book.book_id).join(', ');
                 row.innerHTML = `
-                <td>${record.borrow_id}</td>
-                <td>${formatDate(record.borrow_date)}</td>
-                <td>${formatDate(record.return_date)}</td>
-                <td>${record.books_borrowed.join(', ')}</td>
-                <td>${record.reader_name}</td>
-                <td>
-                    <button class="action-btn btn-update" data-id="${record.borrow_id}">Update</button>
-                    <button class="action-btn btn-delete" data-id="${record.borrow_id}">Delete</button>
-                </td>
+                    <td>${record.borrow_id}</td>
+                    <td>${formatDate(record.borrow_date)}</td>
+                    <td>${formatDate(record.return_date)}</td>
+                    <td>${booksBorrowed}</td>
+                    <td>${record.reader_name}</td>
+                    <td>
+                        <button class="action-btn btn-update" data-id="${record.borrow_id}">Update</button>
+                        <button class="action-btn btn-delete" data-id="${record.borrow_id}">Delete</button>
+                    </td>
                 `;
                 borrowTableBody.appendChild(row);
             });
-        
+    
             const updateButtons = document.querySelectorAll('.btn-update');
             updateButtons.forEach(button => {
                 button.addEventListener('click', async (event) => {
                     const borrowId = event.target.getAttribute('data-id');
                     const borrowRecord = borrowRecords.find(record => record.borrow_id === parseInt(borrowId));
-
                     // Clear and populate the update form fields
                     document.getElementById('update_borrow_id').value = borrowId;
                     document.getElementById('update_borrow_date').value = formatDate(borrowRecord.borrow_date);
                     document.getElementById('update_return_date').value = formatDate(borrowRecord.return_date);
-
                     // Populate and wait for the reader select box to be fully populated
                     await populateUpdateReaderSelect(borrowRecord.reader_id);
-
                     // Show the update form
                     document.getElementById('updateForm').style.display = 'block';
                 });
             });
+    
             const deleteButtons = document.querySelectorAll('.btn-delete');
             deleteButtons.forEach(button => {
-              button.addEventListener('click', handleDelete);
+                button.addEventListener('click', handleDelete);
             });
         } catch (error) {
             console.error('Error fetching borrow records:', error);
         }
     }
+    
     async function handleDelete(event) {
         const borrowId = event.target.getAttribute('data-id');
     
@@ -134,8 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const borrowDateValue = document.getElementById('borrow_date').value;
         const returnDateValue = document.getElementById('return_date').value;
         const readerId = document.getElementById('reader_id').value;
-
-        // Parse the input date strings to Date objects
+        
 
 
         // Collect all selected book IDs from checkboxes
@@ -233,6 +232,37 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error fetching readers:', error);
         }
     }
+    document.getElementById('redirectButton').addEventListener('click', async function() {  
+        const borrowId = document.getElementById('update_borrow_id').value;  
+        const readerName = document.querySelector('#update_reader_id option:checked') ?  
+            document.querySelector('#update_reader_id option:checked').textContent : '';  
+
+        const response = await fetch('http://localhost:3000/api/v1/misc'); // Adjust API endpoint for borrow records  
+        const borrowRecords = await response.json();  
+        const bookmap = borrowRecords.find(record => record.borrow_id === parseInt(borrowId));  
+
+        // Get book_ids from the borrow record and join them as a string  
+        const booksIdBorrowed = bookmap.books_borrowed.map(book => book.book_id).join(',');  
+
+        // Construct the URL with borrowId, readerName, and book_ids  
+        const popupUrl = `updateform/update.html?borrow_id=${borrowId}&reader_name=${encodeURIComponent(readerName)}&book_ids=${booksIdBorrowed}`;  
+
+        // Open the popup with the constructed URL  
+        const updateWindow = window.open(popupUrl, '_blank', 'width=800,height=600');  
+
+        // Polling to check if the update window is closed
+        const interval = setInterval(function() {
+            if (updateWindow.closed) {
+                clearInterval(interval);
+                // Refresh borrow.html when update.html is closed
+                location.reload();
+            }
+        }, 500); // Check every 500 ms
+
+        // Log the constructed URL for debugging  
+        console.log(popupUrl);  
+    });
+    
 
     fetchReaders();
     fetchBooks();

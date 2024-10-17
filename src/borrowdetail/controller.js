@@ -48,7 +48,7 @@ const addBorrowdetail = (req, res) => {
         res.status(409).send("borrow id doesn't exist");
         return;
       }
-      pool.query(queries.addBorrow, [book_id, borrow_id], (error, results) => {
+      pool.query(queries.addBorrowdetail, [book_id, borrow_id], (error, results) => {
         if (error) throw error;
         res.status(201).send("Borrow added");
         console.log("Borrow created");
@@ -67,7 +67,7 @@ const removeBorrowdetail = (req, res) => {
       if (noBorrowFound) {
         res.status(404).send("No Borrow found Couldn't remove");
       } else {
-        pool.query(queries.removeBorrow, [borrow_id], (error, results) => {
+        pool.query(queries.removeBorrowdetail, [borrow_id], (error, results) => {
           if (error) throw error;
           res.status(200).send("Borrow removed");
         });

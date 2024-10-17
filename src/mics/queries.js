@@ -1,25 +1,33 @@
 const getBorrowview = "SELECT * FROM borrowdetailsview";
-const getBorrownew = `SELECT 
-  b.borrow_id, 
-  r.reader_id, 
-  r.reader_name, 
-  b.borrow_date, 
-  b.return_date, 
-  array_agg(book.book_name) AS books_borrowed
-FROM 
+const getBorrownew = `
+SELECT
+  b.borrow_id,
+  r.reader_id,
+  r.reader_name,
+  b.borrow_date,
+  b.return_date,
+  array_agg(
+    json_build_object(
+      'book_id', book.book_id,
+      'book_name', book.book_name
+    )
+  ) AS books_borrowed
+FROM
   borrow AS b
-JOIN 
+JOIN
   borrowdetails AS bd ON b.borrow_id = bd.borrow_id
-JOIN 
+JOIN
   book AS book ON bd.book_id = book.book_id
-JOIN 
+JOIN
   reader AS r ON b.reader_id = r.reader_id
-GROUP BY 
-  b.borrow_id, 
-  r.reader_id, 
-  r.reader_name, 
-  b.borrow_date, 
-  b.return_date;`;
+GROUP BY
+  b.borrow_id,
+  r.reader_id,
+  r.reader_name,
+  b.borrow_date,
+  b.return_date;
+`;
+
 const getBorrowById = `SELECT b.borrow_id, r.reader_name, b.borrow_date, b.return_date, array_agg(book.book_id) AS books_borrowed
 FROM borrow AS b
 JOIN borrowdetails AS bd ON b.borrow_id = bd.borrow_id

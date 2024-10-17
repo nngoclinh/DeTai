@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Form</title>
+    <link rel="stylesheet" href="update.css">
+</head>
+<body>
+    <h1>Update Book Form</h1>
+    <p id="borrowIdText">Update book form of borrow id: <span id="borrowId"></span></p>
+    <p id="readerNameText">Reader Name: <span id="readerName"></span></p>
+    <p id="bookIdText">Book borrowed: <span id="bookId"></span></p>
+    <div id="book-list">
+        <h2>Choose the book you need to update</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Book ID</th>
+                    <th>Book Name</th>
+                    <th>Author</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="books"></tbody>
+        </table>
+        <button id="updateButton">Update Selected Books</button>
+    </div>
+    <script src="update.js"></script>
+</body>
+</html>

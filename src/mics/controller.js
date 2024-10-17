@@ -29,43 +29,42 @@ const getBorrowview = async (req,res) =>{
   }
   const updateBorrow = async (req, res) => {
     const borrow_id = parseInt(req.params.id);
-    const { book_id } = req.body; // This is the new list of book IDs to update
-  
+    const { book_id } = req.body;
+
     try {
-      // Ensure book_ids is provided and is an array
-      if (!Array.isArray(book_id) || book_id.length === 0) {
-        return res.status(400).send("No books provided to update");
-      }
-  
-      // Fetch the current books for the given borrow_id
-      const existingBooksResult = await pool.query(queries.getBooksByBorrowId, [borrow_id]);
-      const existingBookIds = existingBooksResult.rows.map(row => row.book_id);
-  
-      // Determine which books need to be added and which need to be removed
-      const booksToAdd = book_id.filter(id => !existingBookIds.includes(id)); // New books
-      const booksToRemove = existingBookIds.filter(id => !book_id.includes(id)); // Books to remove
-  
-      // Add new books
-      if (booksToAdd.length > 0) {
-        const addPromises = booksToAdd.map(id => pool.query(detailQueries.addBorrowdetail, [borrow_id, id]));
-        await Promise.all(addPromises);
-      }
-  
-      // Remove books that are no longer in the request
-      if (booksToRemove.length > 0) {
-        const removePromises = booksToRemove.map(id => pool.query(queries.removeBorrowdetails, [borrow_id, id]));
-        await Promise.all(removePromises);
-      }
-  
-      // Respond success
-      res.status(200).send("Borrow updated successfully");
+        // Ensure book_ids is provided and is an array
+        if (!Array.isArray(book_id) || book_id.length === 0) {
+            return res.status(400).json({ success: false, message: "No books provided to update" });
+        }
+
+        // Fetch the current books for the given borrow_id
+        const existingBooksResult = await pool.query(queries.getBooksByBorrowId, [borrow_id]);
+        const existingBookIds = existingBooksResult.rows.map(row => row.book_id);
+
+        // Determine which books need to be added and which need to be removed
+        const booksToAdd = book_id.filter(id => !existingBookIds.includes(id)); // New books
+        const booksToRemove = existingBookIds.filter(id => !book_id.includes(id)); // Books to remove
+
+        // Add new books
+        if (booksToAdd.length > 0) {
+            const addPromises = booksToAdd.map(id => pool.query(detailQueries.addBorrowdetail, [borrow_id, id]));
+            await Promise.all(addPromises);
+        }
+
+        // Remove books that are no longer in the request
+        if (booksToRemove.length > 0) {
+            const removePromises = booksToRemove.map(id => pool.query(queries.removeBorrowdetails, [borrow_id, id]));
+            await Promise.all(removePromises);
+        }
+
+        // Respond success
+        res.status(200).json({ success: true, message: "Borrow updated successfully" });
     } catch (error) {
-      console.error("Error during borrow update process:", error);
-      res.status(500).send("Error processing borrow update request");
+        console.error("Error during borrow update process:", error);
+        res.status(500).json({ success: false, message: "Error processing borrow update request" });
     }
-  };
-  
-  
+};
+
   module.exports = {
     getBorrowview,
     getBorrowById,
